@@ -1,0 +1,101 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'plugins/css/bootstrap-datetimepicker.min.css'%}" >
+{% endblock %}
+
+{% block content %}
+
+        <div class="container">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">新建用户</h3>
+            </div>
+            <div class="panel-body">
+                <form class="form form-horizontal" method="post">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">姓名</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" placeholder="姓名">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">密码</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" placeholder="密码">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">年龄</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" placeholder="年龄">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">余额</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" placeholder="余额">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label id="datetime" class="col-sm-2 control-label">入职时间</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" placeholder="入职时间">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">性别</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" placeholder="性别">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">部门</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" placeholder="部门">
+                        </div>
+                    </div>
+
+
+                    <div class="form-group">
+                        <div class="col-sm-offset-2 col-sm-10">
+                            <button type="submit" class="btn btn-primary">提交</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block js %}
+
+    <script src="{% static 'plugins/js/bootstrap-datetimepicker.min.js' %}"></script>
+    <script src="{% static 'plugins/js/locales/bootstrap-datetimepicker.zh-CN.js' %}"></script>
+    <script type="text/javascript">
+			$('#datetime').datetimepicker({
+				language: 'zh-CN', //显示中文
+				format: 'yyyy-mm-dd', //显示格式
+				autoclose: true, //选中自动关闭
+				todayBtn: true, //显示今日按钮
+				todayHighlight: true, // 今日高亮显示
+				weekStart: 1, //一周从哪一天开始。0（星期日）到6（星期六）
+				startDate: "2021-1-1", //日期选取的起始时间
+				minView: "month", // 最小视图为月份，如果为 day 的话还会让你选小时
+				// daysOfWeekDisabled: '0', // 哪天不可选 0（星期日）到6（星期六）
+				endDate: new Date(), //日期选取的截止时间，因为入职日期最多填写到今天，所以可以直接用new Date()，表示当天
+
+			})
+		</script>
+
+
+{% endblock %}

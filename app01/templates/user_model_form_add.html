@@ -1,0 +1,58 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'plugins/css/bootstrap-datetimepicker.min.css' %}">
+{% endblock %}
+
+{% block content %}
+
+ <div class="container">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title">添加用户</h3>
+        </div>
+        <div class="panel-body">
+            <form action="/user/model/form/add/" method="post" novalidate>
+                {% csrf_token %}
+
+                {% for field in form %}
+                    <div class="form-group">
+                        <label>{{ field.label }}: </label>
+                        {{ field }}
+                        <!-- 数据校验,显示错误信息 -->
+                        <span style="color: red;">{{ field.errors.0 }}</span>
+                    </div>
+                {% endfor %}
+
+                <button type="submit" class="btn btn-primary">保存</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block js %}
+
+    <script src="{% static 'plugins/js/bootstrap-datetimepicker.min.js' %}"></script>
+    <script src="{% static 'plugins/js/locales/bootstrap-datetimepicker.zh-CN.js' %}"></script>
+    <script type="text/javascript">
+			$('#id_create_time').datetimepicker({
+				language: 'zh-CN', //显示中文
+				format: 'yyyy-mm-dd', //显示格式
+				autoclose: true, //选中自动关闭
+				todayBtn: true, //显示今日按钮
+				todayHighlight: true, // 今日高亮显示
+				weekStart: 1, //一周从哪一天开始。0（星期日）到6（星期六）
+				startDate: "2021-1-1", //日期选取的起始时间
+				minView: "month", // 最小视图为月份，如果为 day 的话还会让你选小时
+				// daysOfWeekDisabled: '0', // 哪天不可选 0（星期日）到6（星期六）
+				endDate: new Date(), //日期选取的截止时间，因为入职日期最多填写到今天，所以可以直接用new Date()，表示当天
+
+			})
+		</script>
+
+
+{% endblock %}
