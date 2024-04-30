@@ -12,3 +12,17 @@ class BootStrapModelForm(forms.ModelForm):
                 field.widget.attrs = {
                     "class": "form-control",
                 }
+
+from django import forms
+
+class BootStrapForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        super(BootStrapForm, self).__init__(*args, **kwargs)
+        # 遍历 Form 中的所有字段
+        for field_name, field in self.fields.items():
+            # 如果字段已有 class 属性，则添加 'form-control' 类
+            if 'class' in field.widget.attrs:
+                field.widget.attrs['class'] += ' form-control'
+            else:
+                # 如果字段没有 class 属性，则设置为 'form-control'
+                field.widget.attrs['class'] = 'form-control'

@@ -1,15 +1,20 @@
-from django.shortcuts import render, redirect
+import io
+
+from django.core.exceptions import ValidationError
+from django.http import FileResponse, HttpResponse
+from django.shortcuts import redirect
+from django.shortcuts import render
+from reportlab.pdfgen import canvas
+
 from app01 import models
 from app01.form.form import UserModelForm, PrettyModelForm, PrettyEditModelForm
+from app01.utils.modelform import BootStrapModelForm,BootStrapForm
 from app01.utils.pagination import Pagination
+from django import forms
 
-import reportlab
 
 # Create your views here.
 
-import io
-from django.http import FileResponse
-from reportlab.pdfgen import canvas
 
 # 输入http://localhost:8000/generate-pdf/ 则自动下载hello.pdf pdf内有Hello World.
 def some_view(request):
@@ -212,3 +217,248 @@ def pretty_delete(request, nid):
     """删除靓号"""
     models.PrettyNum.objects.filter(id=nid).delete()
     return redirect('/pretty/list/')
+
+
+def admin_list(request):
+    """管理员列表"""
+
+    data_dict = {}
+    # 不加后面的 "", 首次访问浏览器,搜索框中不会显示前端页面中的 placeholder="Search for..." 属性
+    search_data = request.GET.get('query', "")
+    if search_data:
+        data_dict["username__contains"] = search_data
+
+    queryset = models.Admin.objects.filter(**data_dict).order_by("id")
+
+    # queryset = Admin.objects.all()
+    page_object = Pagination(request, queryset, page_size=2)
+    page_queryset = page_object.page_queryset
+    page_object.html()
+    page_string = page_object.page_string
+
+    context = {
+        "page_queryset": page_queryset,
+        "page_string": page_string,
+        "search_data": search_data,
+    }
+
+    return render(request, "admin_list.html", context)
+
+
+import hashlib
+from django.conf import settings
+
+
+def md5(data_string):
+    obj = hashlib.md5(settings.SECRET_KEY.encode('utf-8'))
+    obj.update(data_string.encode('utf-8'))
+    return obj.hexdigest()
+
+
+
+
+
+class AdminModelForm(BootStrapModelForm):
+    confirm_password = forms.CharField(
+        label="确认密码",
+        widget=forms.PasswordInput,
+    )
+
+    class Meta:
+        model = models.Admin
+        fields = ["username", "password", "confirm_password"]
+        widgets = {
+            "password": forms.PasswordInput
+        }
+
+    # 钩子函数
+    # clean_字段名
+    def clean_password(self):
+        pwd = self.cleaned_data.get("password")
+        # return什么.password字段保存什么
+        return md5(pwd)
+
+    # 钩子函数
+    def clean_confirm_password(self):
+        pwd = self.cleaned_data.get("password")
+        confirm = self.cleaned_data.get("confirm_password")
+        if md5(confirm) != pwd:
+            raise ValidationError("密码不一致!")
+
+        # return返回什么,字段 confirm_password 保存至数据库的值就是什么
+        return md5(confirm)
+
+
+def admin_add(request):
+    """添加管理员"""
+
+    title = "新建管理员"
+
+    if request.method == "GET":
+        form = AdminModelForm()
+        return render(request, "change.html", {"form": form, "title": title})
+
+    # 如果是POST请求
+    form = AdminModelForm(data=request.POST)
+
+    context = {
+        "form": form,
+        "title": title,
+    }
+
+    if form.is_valid():
+        form.save()
+        return redirect("/admin/list")
+
+    return render(request, "change.html", context)
+
+
+# 如果不想让用户修改密码,只能修改用户名,那么使用下面这个AdminEditModelForm
+# 如果都可以修改,直接用上面的AdminModelForm即可
+class AdminEditModelForm(BootStrapModelForm):
+    class Meta:
+        model = models.Admin
+        fields = ["username","password"]
+
+
+def admin_edit(request, nid):
+    # 判断 nid 是否存在
+    row_object = models.Admin.objects.filter(id=nid).first()
+    if not row_object:
+        return render(request, "error.html", {"msg": "数据不存在!"})
+
+    """编辑管理员"""
+
+    title = "编辑管理员"
+
+    if request.method == "GET":
+        form = AdminEditModelForm(instance=row_object)
+        return render(request, "change.html", {"form": form, "title": title})
+
+    form = AdminEditModelForm(data=request.POST, instance=row_object)
+    if form.is_valid():
+        form.save()
+        return redirect('/admin/list/')
+
+    return render(request, "change.html", {"form": form, "title": title})
+
+
+def admin_delete(request, nid):
+    """删除管理员"""
+    models.Admin.objects.filter(id=nid).delete()
+    return redirect("/admin/list/")
+
+
+class AdminResetModelForm(BootStrapModelForm):
+    confirm_password = forms.CharField(
+        label="确认密码",
+        widget=forms.PasswordInput(render_value=True),
+    )
+
+    class Meta:
+        model = models.Admin
+        fields = ["password", "confirm_password"]
+        widgets = {
+            "password": forms.PasswordInput(render_value=True)
+        }
+
+    # clean_字段名
+    def clean_password(self):
+        pwd = self.cleaned_data.get("password")
+
+        # 校验当前数据库中的密码与用户输入的新密码是否一致
+        exists = models.Admin.objects.filter(id=self.instance.pk, password=md5(pwd))
+        if exists:
+            raise ValidationError("密码不能与当前密码一致!")
+
+        # return什么.password字段保存什么
+        return md5(pwd)
+
+    # 钩子函数
+    def clean_confirm_password(self):
+        pwd = self.cleaned_data.get("password")
+        confirm = self.cleaned_data.get("confirm_password")
+        if md5(confirm) != pwd:
+            raise ValidationError("密码不一致!")
+
+        # return返回什么,字段 confirm_password 保存至数据库的值就是什么
+        return md5(confirm)
+
+
+def admin_reset(request, nid):
+    """重置管理员密码"""
+
+    # 判断 nid 是否存在
+    row_object = models.Admin.objects.filter(id=nid).first()
+    if not row_object:
+        return render(request, "error.html", {"msg": "数据不存在!"})
+
+    title = "重置密码 - {}".format(row_object.username)
+
+    if request.method == "GET":
+        form = AdminResetModelForm(instance=row_object)
+
+        return render(request, "change.html", {"title": title, "form": form})
+
+    form = AdminResetModelForm(data=request.POST, instance=row_object)
+    if form.is_valid():
+        form.save()
+        return redirect("/admin/list/")
+
+    return render(request, "change.html", {"title": title, "form": form})
+
+
+# 这一次不使用ModelForm,使用Form来实现
+class LoginForm(BootStrapForm):
+    username = forms.CharField(
+        label="用户名",
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+        required=True,
+    )
+    password = forms.CharField(
+        label="用户名",
+        # render_value=True 表示当提交后,如果密码输入错误,不会自动清空密码输入框的内容
+        widget=forms.PasswordInput(attrs={"class": "form-control"}, ),
+        required=True,
+    )
+
+    def clean_password(self):
+        pwd = self.cleaned_data.get("password")
+        return md5(pwd)
+
+
+def login(request):
+    """登录"""
+    if request.method == "GET":
+        form = LoginForm()
+        return render(request, 'login.html', {"form": form})
+
+    form = LoginForm(data=request.POST)
+    if form.is_valid():
+        # 验证成功, 获取到的用户名和密码
+        print(form.cleaned_data)
+        # {'username': '123', 'password': '123'}
+        # {'username': '456', 'password': '0f54af32f41a5ba8ef3a2d40cd6ccf25'}
+
+        # 去数据库校验用户名和密码是否正确
+        admin_object = models.Admin.objects.filter(**form.cleaned_data).first()
+        if not admin_object:
+            form.add_error("password", "用户名或密码错误")
+            return render(request, 'login.html', {"form": form})
+
+        # 如果用户名密码正确
+        # 网站生成随机字符创,写到用户浏览器的cookie中,再写入到服务器的session中
+        request.session["info"] = {'id': admin_object.id, 'name': admin_object.username}
+        return redirect("/admin/list/")
+
+    return render(request, 'login.html', {"form": form})
+
+def logout(request):
+    """ 注销 """
+
+    # 清楚当前session
+    request.session.clear()
+
+    return redirect("/login/")
+
+

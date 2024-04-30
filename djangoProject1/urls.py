@@ -42,8 +42,19 @@ urlpatterns = [
 
     path('generate-pdf/', some_view, name='generate_pdf'),
 
+    # 管理员管理
+    path('admin/list/', views.admin_list),
+    path('admin/add/', views.admin_add),
+    path('admin/<int:nid>/edit/', views.admin_edit),
+    path('admin/<int:nid>/delete/', views.admin_delete),
+    path('admin/<int:nid>/reset/', views.admin_reset),
+
+
     # 登录
     path('login/', views.login),
+
+    # 注销
+    path('logout/', views.logout),
 
 
 
