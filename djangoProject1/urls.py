@@ -42,5 +42,9 @@ urlpatterns = [
 
     path('generate-pdf/', some_view, name='generate_pdf'),
 
+    # 登录
+    path('login/', views.login),
+
+
 
 ]
